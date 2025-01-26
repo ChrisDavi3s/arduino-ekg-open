@@ -8,6 +8,7 @@ from matplotlib.figure import Figure
 from tkinter import messagebox
 import scipy.signal
 import serial
+import serial.tools.list_ports
 from serial import SerialException
 import peakutils
 import xlwt
@@ -19,16 +20,18 @@ serialDataRecorded = []
 serialOpen = False
 global ser
 
-OptionList = [
-"--Select a COM port--", "0",
-"1",
-"2",
-"3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18"
-] 
+OptionList = ["--Select a COM port--"]
 
 connected = False
 serialData = [0] * 70
 
+
+def update_ports(*args):
+    OptionList = ["--Select a COM port--"] + [port.device for port in serial.tools.list_ports.comports()]
+    menu = opt_com["menu"]
+    menu.delete(0, "end")  # Clear existing entries
+    for option in OptionList:
+        menu.add_command(label=option, command=lambda value=option: var.set(value))
 
 def read_from_port(ser):
     global serialOpen
@@ -52,9 +55,9 @@ def read_from_port(ser):
 
 def startSerial():
     try:
-        s =  var.get()
+        s = var.get()
         global ser
-        ser = serial.Serial('COM' + s , 9600, timeout=20)
+        ser = serial.Serial(s, 9600, timeout=20)
         ser.close()
         ser.open()
         global serialOpen
@@ -64,7 +67,7 @@ def startSerial():
         thread = threading.Thread(target=read_from_port, args=(ser,))
         thread.start()
         print('thread started')
-        connectText.set("Connected to COM" + s)
+        connectText.set("Connected to " + s)
         labelConnect.config(fg="green")
 
 
@@ -178,7 +181,7 @@ def processRecording(data):
 
 
 window = tk.Tk()
-window.title("Heart Rate Monitor v0.1")
+window.title("Heart Rate Monitor v0.2")
 window.rowconfigure(0, minsize=800, weight=1)
 window.columnconfigure(1, minsize=800, weight=1)
 
@@ -226,6 +229,7 @@ var = tk.StringVar(window)
 var.set(OptionList[0])
 #combobox = ttk.Combobox(window, values = var)
 opt_com = tk.OptionMenu(fr_buttons, var, *OptionList)
+opt_com.bind("<Button-1>", update_ports)  # Update when clicked
 opt_com.config(width=20)
 #combobox.grid(row=1, column=0, sticky="ew", padx=10)
 opt_com.grid(row=1, column=0, sticky="ew", padx=10)
